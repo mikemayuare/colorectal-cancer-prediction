@@ -3,8 +3,10 @@ from pathlib import Path
 
 import joblib
 import numpy as np
+import optuna
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import cross_val_score
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -13,6 +15,15 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
+from config.paths import (
+    MODEL_FILE,
+    MODELS_DIR,
+    PROCESSED_DATA_DIR,
+    TEST_DATA_FILE,
+    TEST_TARGETS_FILE,
+    TRAIN_DATA_FILE,
+    TRAIN_TARGETS_FILE,
+)
 from src.custom_exception import CustomException
 from src.logger import get_logger
 from src.processing import Processing
@@ -32,19 +43,17 @@ class Training:
         model (RandomForestClassifier): Scikit-learn RandomForestClassifier instance.
     """
 
-    def __init__(
-        self, processed_data_path: Path | str = Path("artifacts/processed_data")
-    ):
+    def __init__(self, processed_data_path: Path | str = PROCESSED_DATA_DIR):
         """Initializes the Training class with the processed data path.
 
         Args:
             processed_data_path (Path | str): Path to the processed data directory.
         """
         self.data_path = processed_data_path
-        self.model_dir = Path("artifacts/models")
+        self.model_dir = MODELS_DIR
         self.model_dir.mkdir(exist_ok=True, parents=True)
 
-        logger.info("Training started")
+        logger.info("Training initialized")
 
     def load_data(self):
         """Loads the processed data from the specified path.
@@ -53,10 +62,10 @@ class Training:
             CustomException: If there is an error loading the data.
         """
         try:
-            X_train = joblib.load(self.data_path / Path("X_train.pkl"))
-            X_test = joblib.load(self.data_path / Path("X_test.pkl"))
-            y_train = joblib.load(self.data_path / Path("y_train.pkl"))
-            y_test = joblib.load(self.data_path / Path("y_test.pkl"))
+            X_train = joblib.load(TRAIN_DATA_FILE)
+            X_test = joblib.load(TEST_DATA_FILE)
+            y_train = joblib.load(TRAIN_TARGETS_FILE)
+            y_test = joblib.load(TEST_TARGETS_FILE)
 
             self.X_train = X_train
             self.X_test = X_test
@@ -71,6 +80,38 @@ class Training:
             logger.error("Error loading data - line %d: %s", line_number, e)
             raise CustomException("Error loading data") from e
 
+    def objective(self, trial):
+        try:
+            params = {
+                "n_estimators": 2000,
+                "n_iter_no_change": trial.suggest_int("n_iter_no_change", 10, 50),
+                "validation_fraction": 0.1,
+                "tol": 1e-4,
+                "max_depth": trial.suggest_int("max_depth", 1, 10),
+                "learning_rate": trial.suggest_float(
+                    "learning_rate", 0.001, 0.2, log=True
+                ),
+                "min_samples_leaf": trial.suggest_int("min_samples_leaf", 1, 50),
+                "min_samples_split": trial.suggest_int("min_samples_split", 2, 50),
+                "subsample": trial.suggest_float("subsample", 0.5, 1.0),
+            }
+
+            # train
+            gbc = GradientBoostingClassifier(**params, random_state=42)
+
+            # predict and evaluate
+            scores = cross_val_score(
+                gbc, self.X_train, self.y_train, cv=5, scoring="f1", n_jobs=-1
+            )
+
+            return scores.mean()
+
+        except Exception as e:
+            tb = traceback.extract_tb(e.__traceback__)[0]
+            line_number = tb.lineno
+            logger.error("Error tuning hyperparameters - line %d: %s", line_number, e)
+            raise CustomException("Error tuning hyperparameters") from e
+
     def train_model(self):
         """Trains a GradientBoostingClassifier model on the processed data.
 
@@ -78,16 +119,21 @@ class Training:
             CustomException: If there is an error during model training.
         """
         try:
+            study = optuna.create_study(direction="maximize")
+            logger.info("Hyperparameter tuning started")
+            study.optimize(self.objective, n_trials=10, show_progress_bar=True)
+
+            params = study.best_params
+
             logger.info("Training started")
             self.model = GradientBoostingClassifier(
-                n_estimators=100,
-                max_depth=5,
-                learning_rate=0.1,
+                **params,
                 random_state=42,
             )
+
             self.model.fit(self.X_train, self.y_train)
 
-            joblib.dump(self.model, self.model_dir / Path("model.pkl"))
+            joblib.dump(self.model, MODEL_FILE)
 
             logger.info("Model trained and saved successfully")
         except Exception as e:
@@ -137,5 +183,5 @@ class Training:
 
 
 if __name__ == "__main__":
-    training = Training(Path("artifacts/processed_data"))
+    training = Training(PROCESSED_DATA_DIR)
     training.run()
