@@ -1,3 +1,4 @@
+import traceback
 from pathlib import Path
 
 import joblib
@@ -57,8 +58,10 @@ class Processing:
             self.df.columns = self.df.columns.str.lower()
             logger.info("Data loaded successfully")
         except Exception as e:
-            logger.error("Error loading data: %s", e)
-            raise CustomException("Error loading data")
+            tb = traceback.extract_tb(e.__traceback__)[0]
+            line_number = tb.lineno
+            logger.error("Error loading data - line %d: %s", line_number, e)
+            raise CustomException("Error loading data") from e
 
     def process_data(self):
         """Preprocesses the data by dropping missing values and unnecessary columns,
@@ -72,18 +75,24 @@ class Processing:
             self.X = self.df.drop(columns=["survival_prediction"])
             self.y = self.df["survival_prediction"]
 
-            # label encoding
+            # label encoding features
             categorical_columns = self.X.select_dtypes(include=["object"]).columns
             for col in categorical_columns:
                 le = LabelEncoder()
                 self.X[col] = le.fit_transform(self.X[col])
                 self.label_encoder[col] = le
 
+            # label encoding target
+            le = LabelEncoder()
+            self.y = le.fit_transform(self.y)  # type: ignore
+
             logger.info("Label encoding completed")
 
         except Exception as e:
-            logger.error("Error processing data: %s", e)
-            raise CustomException("Error processing data")
+            tb = traceback.extract_tb(e.__traceback__)[0]
+            line_number = tb.lineno
+            logger.error("Error processing data - line %d: %s", line_number, e)
+            raise CustomException("Error processing data") from e
 
     def feature_selection(self):
         """Performs feature selection using Chi-Square test to identify the top 5 features.
@@ -101,7 +110,7 @@ class Processing:
             )
 
             X_num = pd.DataFrame(X_train).select_dtypes(include=["int64", "float64"])
-            chi2_selector = SelectKBest(chi2, k="all")
+            chi2_selector = SelectKBest(chi2, k="all")  # type: ignore
             chi2_selector.fit(X_num, y_train)
 
             chi2_scores = pd.DataFrame(
@@ -118,8 +127,10 @@ class Processing:
             logger.info("Feature selection completed")
 
         except Exception as e:
-            logger.error("Error feature selection: %s", e)
-            raise CustomException("Error feature selection")
+            tb = traceback.extract_tb(e.__traceback__)[0]
+            line_number = tb.lineno
+            logger.error("Error feature selection - line %d: %s", line_number, e)
+            raise CustomException("Error feature selection") from e
 
     def split_and_scale_data(self):
         """Splits the data into training and testing sets and scales them.
@@ -147,8 +158,12 @@ class Processing:
             return X_train, X_test, y_train, y_test
 
         except Exception as e:
-            logger.error("Error splitting and scaling data: %s", e)
-            raise CustomException("Error splitting and scaling data")
+            tb = traceback.extract_tb(e.__traceback__)[0]
+            line_number = tb.lineno
+            logger.error(
+                "Error splitting and scaling data - line %d: %s", line_number, e
+            )
+            raise CustomException("Error splitting and scaling data") from e
 
     def save_data_and_scaler(self, X_train, X_test, y_train, y_test):
         """Saves the processed data splits and the scaler to the output directory.
@@ -174,8 +189,11 @@ class Processing:
             logger.info("Saving data and scaler completed")
 
         except Exception as e:
+            tb = traceback.extract_tb(e.__traceback__)[0]
+            line_number = tb.lineno
+            logger.error("Error saving data and scaler - line %d: %s", line_number, e)
             logger.error("Error saving data and scaler: %s", e)
-            raise CustomException("Error saving data and scaler")
+            raise CustomException("Error saving data and scaler") from e
 
     def run(self):
         """Executes the full data processing pipeline."""
