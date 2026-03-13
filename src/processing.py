@@ -54,6 +54,7 @@ class Processing:
         """
         try:
             self.df = pd.read_csv(self.input_path)
+            self.df.columns = self.df.columns.str.lower()
             logger.info("Data loaded successfully")
         except Exception as e:
             logger.error("Error loading data: %s", e)
@@ -67,9 +68,9 @@ class Processing:
             CustomException: If there is an error during data processing.
         """
         try:
-            self.df = self.df.dropna(axis=0, how="any").drop(columns=["Patient_ID"])
-            self.X = self.df.drop(columns=["Survival_Prediction"])
-            self.y = self.df["Survival_Prediction"]
+            self.df = self.df.dropna(axis=0, how="any").drop(columns=["patient_id"])
+            self.X = self.df.drop(columns=["survival_prediction"])
+            self.y = self.df["survival_prediction"]
 
             # label encoding
             categorical_columns = self.X.select_dtypes(include=["object"]).columns
@@ -113,6 +114,7 @@ class Processing:
             self.feature_names = chi2_scores.head(5)["feature"].tolist()
             self.X = self.X[self.feature_names]
 
+            logger.info("Selected features: %s", self.feature_names)
             logger.info("Feature selection completed")
 
         except Exception as e:
