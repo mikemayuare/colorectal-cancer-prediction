@@ -1,0 +1,16 @@
+from pathlib import Path
+
+ARTIFACTS_DIR = Path("artifacts")
+PROCESSED_DATA_DIR = ARTIFACTS_DIR / "processed_data"
+MODELS_DIR = ARTIFACTS_DIR / "models"
+RAW_DATA_DIR = ARTIFACTS_DIR / "raw_data"
+
+MODEL_FILE = MODELS_DIR / "model.pkl"
+
+PROCESSED_DATA_FILE = PROCESSED_DATA_DIR / "processed_data.pkl"
+SCALER_FILE = PROCESSED_DATA_DIR / "scaler.pkl"
+
+TRAIN_DATA_FILE = PROCESSED_DATA_DIR / "X_train.pkl"
+TEST_DATA_FILE = PROCESSED_DATA_DIR / "X_test.pkl"
+TRAIN_TARGETS_FILE = PROCESSED_DATA_DIR / "y_train.pkl"
+TEST_TARGETS_FILE = PROCESSED_DATA_DIR / "y_test.pkl"
