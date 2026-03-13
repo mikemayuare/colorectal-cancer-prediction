@@ -9,6 +9,7 @@ dependencies = [
     "joblib>=1.5.3",
     "kfp>=2.16.0",
     "mlflow>=3.10.1",
+    "optuna>=4.7.0",
     "pandas>=2.3.3",
     "pyarrow>=23.0.1",
     "scikit-learn>=1.8.0",
