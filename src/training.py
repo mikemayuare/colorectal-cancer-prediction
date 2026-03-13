@@ -2,9 +2,7 @@ import traceback
 from pathlib import Path
 
 import joblib
-import numpy as np
 import optuna
-import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import (
@@ -26,7 +24,6 @@ from config.paths import (
 )
 from src.custom_exception import CustomException
 from src.logger import get_logger
-from src.processing import Processing
 
 logger = get_logger(__name__)
 
