@@ -5,11 +5,11 @@ from pathlib import Path
 LOGS_DIR = Path("logs")
 Path.mkdir(LOGS_DIR, exist_ok=True)
 
-LOF_FILE = Path(f"{LOGS_DIR}/log_{datetime.now().strftime('%Y-%m-%d')}.log")
+LOG_FILE = Path(f"{LOGS_DIR}/log_{datetime.now().strftime('%Y-%m-%d')}.log")
 
 logging.basicConfig(
-    filename=LOF_FILE,
-    format="%(asctime)s - %(levelname)s - %(message)s",
+    filename=LOG_FILE,
+    format="%(asctime)s - %(levelname)s - [%(filename)s] - %(message)s",
     level=logging.INFO,
 )
 
