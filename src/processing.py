@@ -8,6 +8,15 @@ from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 
+from config.paths import (
+    PROCESSED_DATA_DIR,
+    RAW_DATA_DIR,
+    SCALER_FILE,
+    TEST_DATA_FILE,
+    TEST_TARGETS_FILE,
+    TRAIN_DATA_FILE,
+    TRAIN_TARGETS_FILE,
+)
 from src.custom_exception import CustomException
 from src.logger import get_logger
 
@@ -179,12 +188,12 @@ class Processing:
         """
         try:
             logger.info("Saving data and scaler started")
-            joblib.dump(X_train, self.output_path / Path("X_train.pkl"))
-            joblib.dump(X_test, self.output_path / Path("X_test.pkl"))
-            joblib.dump(y_train, self.output_path / Path("y_train.pkl"))
-            joblib.dump(y_test, self.output_path / Path("y_test.pkl"))
+            joblib.dump(X_train, TRAIN_DATA_FILE)
+            joblib.dump(X_test, TEST_DATA_FILE)
+            joblib.dump(y_train, TRAIN_TARGETS_FILE)
+            joblib.dump(y_test, TEST_TARGETS_FILE)
 
-            joblib.dump(self.scaler, self.output_path / Path("scaler.pkl"))
+            joblib.dump(self.scaler, SCALER_FILE)
 
             logger.info("Saving data and scaler completed")
 
@@ -207,8 +216,8 @@ class Processing:
 
 
 if __name__ == "__main__":
-    input_path = Path("artifacts/raw_data/data.csv")
-    output_path = Path("artifacts/processed_data")
+    input_path = RAW_DATA_DIR / "data.csv"
+    output_path = PROCESSED_DATA_DIR
 
     processing = Processing(input_path, output_path)
     processing.run()
