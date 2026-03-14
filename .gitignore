@@ -217,3 +217,7 @@ __marimo__/
 
 experiments/
 .python-version
+mlflow.db
+mlruns/
+models/
+processed_data/
