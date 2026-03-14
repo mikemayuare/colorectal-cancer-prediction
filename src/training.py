@@ -1,10 +1,11 @@
 import traceback
 from pathlib import Path
 
+import argparse
 import joblib
+import mlflow
 import optuna
 from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.model_selection import cross_val_score
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -12,6 +13,7 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
+from sklearn.model_selection import cross_val_score
 
 from config.paths import (
     MODEL_FILE,
@@ -40,7 +42,11 @@ class Training:
         model (RandomForestClassifier): Scikit-learn RandomForestClassifier instance.
     """
 
-    def __init__(self, processed_data_path: Path | str = PROCESSED_DATA_DIR):
+    def __init__(
+        self,
+        processed_data_path: Path | str = PROCESSED_DATA_DIR,
+        n_trials: int = 100,
+    ):
         """Initializes the Training class with the processed data path.
 
         Args:
@@ -49,6 +55,7 @@ class Training:
         self.data_path = processed_data_path
         self.model_dir = MODELS_DIR
         self.model_dir.mkdir(exist_ok=True, parents=True)
+        self.n_trials = n_trials
 
         logger.info("Training initialized")
 
@@ -118,9 +125,12 @@ class Training:
         try:
             study = optuna.create_study(direction="maximize")
             logger.info("Hyperparameter tuning started")
-            study.optimize(self.objective, n_trials=10, show_progress_bar=True)
+            study.optimize(
+                self.objective, n_trials=self.n_trials, show_progress_bar=True
+            )
 
             params = study.best_params
+            mlflow.log_params(params)
 
             logger.info("Training started")
             self.model = GradientBoostingClassifier(
@@ -131,6 +141,11 @@ class Training:
             self.model.fit(self.X_train, self.y_train)
 
             joblib.dump(self.model, MODEL_FILE)
+            mlflow.sklearn.log_model(
+                self.model,
+                name="GradientBoostingClassifier",
+                params=params,
+            )
 
             logger.info("Model trained and saved successfully")
         except Exception as e:
@@ -158,6 +173,12 @@ class Training:
                 self.y_test, y_proba[:, 1] if y_proba.shape[1] == 2 else None
             )
 
+            mlflow.log_metric("accuracy", accuracy)
+            mlflow.log_metric("precision", precision)
+            mlflow.log_metric("recall", recall)
+            mlflow.log_metric("f1", f1)
+            mlflow.log_metric("roc_auc", roc_auc)  # type: ignore
+
             logger.info("Model evaluation completed")
             logger.info("Accuracy: %.2f", accuracy)
             logger.info("Precision: %.2f", precision)
@@ -180,5 +201,11 @@ class Training:
 
 
 if __name__ == "__main__":
-    training = Training(PROCESSED_DATA_DIR)
-    training.run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--n_trials", type=int, default=100, help="Number of trials")
+
+    training = Training(PROCESSED_DATA_DIR, parser.parse_args().n_trials)
+
+    mlflow.set_experiment("colorectal-cancer-prediction")
+    with mlflow.start_run():
+        training.run()
