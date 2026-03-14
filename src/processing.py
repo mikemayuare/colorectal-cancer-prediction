@@ -91,10 +91,6 @@ class Processing:
                 self.X[col] = le.fit_transform(self.X[col])
                 self.label_encoder[col] = le
 
-            # label encoding target
-            le = LabelEncoder()
-            self.y = le.fit_transform(self.y)  # type: ignore
-
             logger.info("Label encoding completed")
 
         except Exception as e:
