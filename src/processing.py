@@ -16,6 +16,9 @@ from config.paths import (
     TEST_TARGETS_FILE,
     TRAIN_DATA_FILE,
     TRAIN_TARGETS_FILE,
+    SELECTED_FEATURES_FILE,
+    ENCODER_FILE,
+    TARGET_ENCODER_FILE,
 )
 from src.custom_exception import CustomException
 from src.logger import get_logger
@@ -30,6 +33,7 @@ class Processing:
         input_path (Path | str): Path to the input CSV file.
         output_path (Path | str): Directory where processed data and scaler will be saved.
         label_encoder (dict): Dictionary to store LabelEncoder instances for categorical columns.
+        target_encoder (LabelEncoder): LabelEncoder instance for the target variable.
         scaler (StandardScaler): Scikit-learn StandardScaler instance.
         df (pd.DataFrame): The loaded dataset.
         X (pd.DataFrame | pd.Series | np.ndarray): Feature matrix.
@@ -47,6 +51,7 @@ class Processing:
         self.input_path = input_path
         self.output_path = output_path
         self.label_encoder: dict = {}
+        self.target_encoder: LabelEncoder = LabelEncoder()
         self.scaler: StandardScaler = StandardScaler()
         self.df: pd.DataFrame = pd.DataFrame()
         self.X: pd.DataFrame | pd.Series | np.ndarray = pd.DataFrame()
@@ -82,7 +87,7 @@ class Processing:
         try:
             self.df = self.df.dropna(axis=0, how="any").drop(columns=["patient_id"])
             self.X = self.df.drop(columns=["survival_prediction"])
-            self.y = self.df["survival_prediction"]
+            self.y = self.target_encoder.fit_transform(self.df["survival_prediction"])
 
             # label encoding features
             categorical_columns = self.X.select_dtypes(include=["object"]).columns
@@ -190,6 +195,9 @@ class Processing:
             joblib.dump(y_test, TEST_TARGETS_FILE)
 
             joblib.dump(self.scaler, SCALER_FILE)
+            joblib.dump(self.feature_names, SELECTED_FEATURES_FILE)
+            joblib.dump(self.label_encoder, ENCODER_FILE)
+            joblib.dump(self.target_encoder, TARGET_ENCODER_FILE)
 
             logger.info("Saving data and scaler completed")
 
