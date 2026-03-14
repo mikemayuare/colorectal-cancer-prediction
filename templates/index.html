@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colorectal Cancer Prediction</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Colorectal Cancer Prediction</h1>
+        <form action="/predict" method="post">
+            {% for feature in features %}
+            <div class="form-group">
+                <label for="{{ feature }}">{{ feature.replace('_', ' ').title() }}</label>
+                {% if feature in encoders %}
+                <select id="{{ feature }}" name="{{ feature }}" required>
+                    {% for class in encoders[feature].classes_ %}
+                    <option value="{{ class }}" {% if form_data.get(feature) == class %}selected{% endif %}>{{ class }}</option>
+                    {% endfor %}
+                </select>
+                {% else %}
+                <input type="number" id="{{ feature }}" name="{{ feature }}" required step="any" value="{{ form_data.get(feature, '') }}">
+                {% endif %}
+            </div>
+            {% endfor %}
+            <button type="submit">Predict Survival</button>
+        </form>
+
+        {% if prediction is not none %}
+        <div class="result {{ 'positive' if prediction == 'Yes' else 'negative' }}">
+            Prediction: {{ 'Survivor' if prediction == 'Yes' else 'Non-Survivor' }}
+        </div>
+        {% endif %}
+    </div>
+</body>
+</html>

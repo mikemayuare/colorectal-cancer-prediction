@@ -166,9 +166,9 @@ class Training:
             y_proba = self.model.predict_proba(self.X_test)
 
             accuracy = accuracy_score(self.y_test, y_pred)
-            precision = precision_score(self.y_test, y_pred)
-            recall = recall_score(self.y_test, y_pred)
-            f1 = f1_score(self.y_test, y_pred)
+            precision = precision_score(self.y_test, y_pred, average="weighted")
+            recall = recall_score(self.y_test, y_pred, average="weighted")
+            f1 = f1_score(self.y_test, y_pred, average="weighted")
             roc_auc = roc_auc_score(
                 self.y_test, y_proba[:, 1] if y_proba.shape[1] == 2 else None
             )
